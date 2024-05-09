@@ -1,0 +1,112 @@
+
+首先获取适配器
+WmsWayBillWrapper wayBillWrapper = getWmsWayBillWrapper(getWaybillRequest);
+wayBillWrapper.getWayBillNoList(getWaybillRequest);
+
+
+//获取适配器的方法。其中有个工厂wmsWayBillAdaptorFactory看最后
+private WmsWayBillWrapper getWmsWayBillWrapper(GetWaybillRequest waybillRequest) {
+    WmsWayBillWrapper wrapper = new WmsWayBillWrapper();
+    AbstractWmsWayBillAdaptor wmsWayBillAdaptor = null;
+    if(waybillRequest.getOrderNo().startsWith("CDL")){
+        wmsWayBillAdaptor = wmsWayBillAdaptorFactory.getWmsWayBillAdaptor(WmsWaybillAdaptorEnum.ADAPTOR_ODO.getAdaptorKey());
+    }else{
+        wmsWayBillAdaptor = wmsWayBillAdaptorFactory.getWmsWayBillAdaptor(WmsWaybillAdaptorEnum.ADAPTOR_COMMON.getAdaptorKey());
+    }
+    wrapper.setWmsWayBillAdaptor(wmsWayBillAdaptor);
+    return wrapper;
+}
+
+
+//适配器类，放具体实现类wmsWayBillAdaptor和 一个调用的方法getWayBillNoList 根据调用的方法找具体的处理逻辑
+public class WmsWayBillWrapper {
+
+    private AbstractWmsWayBillAdaptor wmsWayBillAdaptor;
+
+    public WmsWayBillWrapper() {}
+
+    public WmsWayBillWrapper(AbstractWmsWayBillAdaptor wmsWayBillAdaptor) {
+        this.wmsWayBillAdaptor = wmsWayBillAdaptor;
+    }
+    public GetWaybillResult getWayBillNoList(GetWaybillRequest getWaybillRequest){
+         return wmsWayBillAdaptor.getWayBillNoList(getWaybillRequest);
+    }
+
+    public AbstractWmsWayBillAdaptor getWmsWayBillAdaptor() {
+        return wmsWayBillAdaptor;
+    }
+
+    public void setWmsWayBillAdaptor(AbstractWmsWayBillAdaptor wmsWayBillAdaptor) {
+        this.wmsWayBillAdaptor = wmsWayBillAdaptor;
+    }
+}
+
+
+//抽象处理的处理抽象类，具体方法实现了它doGetWaybillCodeBatch
+public abstract class AbstractWmsWayBillAdaptor {
+
+    public GetWaybillResult getWayBillNoList(GetWaybillRequest getWaybillRequest) {
+      WmsWayBillContext wayBillContext = new WmsWayBillContext();
+      doGetWaybillCodeBatch(wayBillContext);
+      }
+
+ ｜是个抽象方法 protected abstract GetWaybillResult doGetWaybillCodeBatch(WmsWayBillContext wayBillContext);
+  }
+
+
+//两个具体的实现类
+@Component("commonWmsWayBillAdaptor")
+public class CommonWmsWayBillAdaptorImpl extends AbstractWmsWayBillAdaptor {
+
+      @Override
+    protected GetWaybillResult doGetWaybillCodeBatch(WmsWayBillContext wayBillContext) {
+        return getCurGetWaybillCodeHelper().getWaybillCodeByBatch(wayBillContext);
+    }
+  }
+
+@Component("odoWmsWayBillAdaptor")
+public class OdoWmsWayBillAdaptorImpl extends AbstractWmsWayBillAdaptor {
+      @Override
+    protected GetWaybillResult doGetWaybillCodeBatch(WmsWayBillContext wayBillContext) {
+        return null;
+    }
+    }
+
+
+//工厂类
+@Service("wmsWayBillAdaptorFactory")
+public class WmsWayBillAdaptorFactory implements InitializingBean, ApplicationContextAware {
+    private static final Logger log = LogManager.getLogger(WmsWayBillAdaptorFactory.class);
+
+    private ApplicationContext applicationContext;
+
+    private Map<String,AbstractWmsWayBillAdaptor> wayBillAdaptorMap;
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        Map<String, AbstractWmsWayBillAdaptor> beansMap = applicationContext.getBeansOfType(AbstractWmsWayBillAdaptor.class);
+        if (beansMap.size() > 0) {
+            wayBillAdaptorMap = new HashMap<String, AbstractWmsWayBillAdaptor>();
+            for (Map.Entry<String, AbstractWmsWayBillAdaptor> entry : beansMap.entrySet()) {
+                wayBillAdaptorMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+    }
+    public AbstractWmsWayBillAdaptor getWmsWayBillAdaptor(String bizType) {
+        Set<String> adaptorKeys = wayBillAdaptorMap.keySet();
+        for(String key:adaptorKeys){
+            if(key.equals(bizType)){
+                return wayBillAdaptorMap.get(key);
+            }
+        }
+        return wayBillAdaptorMap.get(WmsWaybillAdaptorEnum.ADAPTOR_COMMON.getAdaptorKey());
+    }
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
+}
+
+
+    
