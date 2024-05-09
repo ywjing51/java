@@ -1,0 +1,63 @@
+//定时任务实现，具体的实现通过策略模式获取asynRefreshProcessorMap.get(performSystem);
+
+@Component("refreshTokenTaskCloverService")
+public class RefreshTokenTaskCloverService extends AbstractScheduleTaskProcess<DeptShipperTokenRel> {
+    private static final Logger logger = Logger.getLogger(RefreshTokenTaskCloverService.class);
+    @Resource
+    private DeptShipperTokenRelManager deptShipperTokenRelManager;
+
+    private List<Integer> performSystemList;
+
+    private Map<String, AsynRefreshProcessor> asynRefreshProcessorMap;
+
+    @Override
+    protected List<DeptShipperTokenRel> selectTasks(TaskServerParam taskServerParam, int curServer) {
+        List<DeptShipperTokenRel> deptShipperTokenRels  = Lists.newArrayList();
+        try {
+            String serverArg = taskServerParam.getServerArg();
+            if (StringUtils.isNotBlank(serverArg)) {
+                // performSystem:time
+                String[] serverArgs = serverArg.split(":");
+                if (serverArgs.length < 1) {
+                    return deptShipperTokenRels;
+                }
+                String performSystem = serverArgs[0]; // 通路
+                String time = serverArgs[1]; // 时间
+                AsynRefreshProcessor refreshProcessor = asynRefreshProcessorMap.get(performSystem);
+                if (refreshProcessor == null) {
+                    logger.error("参数:"+performSystem+ " 服务端参数"+ JSON.toJSONString(serverArg) + " 没有查询器");
+                    return deptShipperTokenRels;
+                }
+                deptShipperTokenRels = refreshProcessor.getData(taskServerParam);
+            }
+            return deptShipperTokenRels;
+        } catch (Exception e) {
+            logger.error("刷新token服务失败:" + e);
+            e.printStackTrace();
+        }
+        return Lists.newArrayList();
+    }
+
+
+
+
+<bean>
+        <property name="asynRefreshProcessorMap">
+            <map>
+                <!--快手-->
+                <entry key="34" value-ref="refreshKwaiTokenProcessor"/>
+                <!--抖音国际-->
+                <entry key="36" value-ref="refreshTikTokOsTokenProcessor"/>
+                <!--抖音电子面单-->
+                <entry key="30" value-ref="refreshTikTokTokenProcessor"/>
+                <!--有赞刷新token-->
+                <entry key="39" value-ref="refreshYouZanTokenProcessor"/>
+                <!--得物刷新token-->
+                <entry key="40" value-ref="refreshDeWuTokenProcessor"/>
+                <!--小红书刷新token-->
+                <entry key="41" value-ref="refreshXhsTokenProcessor"/>
+                <!--微信刷新token-->
+                <entry key="42" value-ref="refreshWeiXinTokenProcessor"/>
+            </map>
+        </property>
+    </bean>
