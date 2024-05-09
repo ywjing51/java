@@ -88,3 +88,94 @@ property 的 name 属性值，在实体 bean 中必须有对应的 set 方法，
             </map>
         </property>
     </bean>
+
+
+
+
+初始化代码
+@Component
+public class DefaultAttributeTemplate implements ApplicationContextAware {
+
+    private final static Logger log  = LogManager.getLogger(DefaultAttributeTemplate.class);
+
+    private GoodsAttributeTemplate goodsAttributeTemplate;
+
+    private ApplicationContext applicationContext;
+
+
+    /**
+     * 初始化
+     */
+    @PostConstruct
+    public void init() {
+        GoodsAttributeTemplate attributeTemplate = null;
+        try{
+            String defaultGoodsAttributeTemplate = FileUtil.readJsonFile("output/template.json");
+            if(StringUtils.isNotBlank(defaultGoodsAttributeTemplate)){
+                attributeTemplate = JsonUtil.fromJson(defaultGoodsAttributeTemplate,GoodsAttributeTemplate.class);
+            }
+        } catch (Exception e){
+            log.error("默认保质期模板获取异常");
+        }
+        goodsAttributeTemplate = attributeTemplate;
+    }
+
+    public GoodsAttributeTemplate getDefaultGoodsAttributeTemplate(){
+        return goodsAttributeTemplate;
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
+
+}
+
+
+
+public class FileUtils {
+
+
+    /**
+     * 读取json文件
+     * @param fileName
+     * @return
+     */
+    public static String readJsonFile(String fileName) {
+        FileReader fileReader = null;
+        Reader reader = null;
+        try {
+            ClassPathResource classPathResource = new ClassPathResource(fileName);
+            File jsonFile = classPathResource.getFile();
+            fileReader = new FileReader(jsonFile);
+            reader = new InputStreamReader(new FileInputStream(jsonFile),"utf-8");
+            int ch;
+            StringBuffer sb = new StringBuffer();
+            while ((ch = reader.read()) != -1) {
+                sb.append((char) ch);
+            }
+            fileReader.close();
+            reader.close();
+            String jsonStr = sb.toString();
+            return jsonStr;
+        } catch (IOException e) {
+
+        } finally {
+            if(fileReader != null){
+                try {
+                    fileReader.close();
+                } catch (IOException e) {
+
+                }
+            }
+            if(reader != null){
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                }
+            }
+        }
+        return null;
+    }
+}
+
