@@ -38,26 +38,53 @@ public class RefreshTokenTaskCloverService extends AbstractScheduleTaskProcess<D
         return Lists.newArrayList();
     }
 
+ public void setPerformSystemList(List<Integer> performSystemList) {
+        this.performSystemList = performSystemList;
+    }
+
+//必须加set不然报错
+    public void setAsynRefreshProcessorMap(Map<String, AsynRefreshProcessor> asynRefreshProcessorMap) {
+        this.asynRefreshProcessorMap = asynRefreshProcessorMap;
+    }
+}
+
+//接口
+public interface AsynRefreshProcessor {
+
+    public List<DeptShipperTokenRel> getData(TaskServerParam taskServerParam);
+
+
+    public boolean execute(DeptShipperTokenRel tokenRel);
+}
+
+//具体实现类
+@Component("refreshKwaiTokenProcessor")
+public class RefreshKwaiTokenProcessor  implements AsynRefreshProcessor {
+
+    @Override
+    public List<DeptShipperTokenRel> getData(TaskServerParam taskServerParam) {
+        Map<String, Object> queryMap = getQueryMap(taskServerParam);
+        List<DeptShipperTokenRel> deptShipperTokenRels = deptShipperTokenRelManager.findfindExtPlatformByMap(queryMap);
+        return deptShipperTokenRels;
+    }
 
 
 
-<bean>
+
+property 的 name 属性值，在实体 bean 中必须有对应的 set 方法，否则报错 
+
+  <bean id="refreshTokenTaskCloverService" class="com.jd.clps.master.clover.RefreshTokenTaskCloverService">
+
+<!-- set方法注入 -->
+        <property name="performSystemList">
+            <list>
+                <value>34</value>
+            </list>
+        </property>
+
         <property name="asynRefreshProcessorMap">
             <map>
-                <!--快手-->
                 <entry key="34" value-ref="refreshKwaiTokenProcessor"/>
-                <!--抖音国际-->
-                <entry key="36" value-ref="refreshTikTokOsTokenProcessor"/>
-                <!--抖音电子面单-->
-                <entry key="30" value-ref="refreshTikTokTokenProcessor"/>
-                <!--有赞刷新token-->
-                <entry key="39" value-ref="refreshYouZanTokenProcessor"/>
-                <!--得物刷新token-->
-                <entry key="40" value-ref="refreshDeWuTokenProcessor"/>
-                <!--小红书刷新token-->
-                <entry key="41" value-ref="refreshXhsTokenProcessor"/>
-                <!--微信刷新token-->
-                <entry key="42" value-ref="refreshWeiXinTokenProcessor"/>
             </map>
         </property>
     </bean>
